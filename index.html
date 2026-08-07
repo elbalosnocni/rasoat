@@ -50,15 +50,40 @@ h2 {
     margin-top: 20px;
 }
 
-input {
-    padding: 10px;
-    width: 320px;
-    font-size: 16px;
+.search-box {
     margin-top: 15px;
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+}
+
+input {
+    padding: 10px 15px;
+    width: 280px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    outline: none;
+}
+
+button {
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.2s;
+}
+
+button:hover {
+    background-color: #1e40af;
 }
 
 #summary {
-    margin-top: 10px;
+    margin-top: 15px;
     font-weight: bold;
 }
 
@@ -109,7 +134,11 @@ th {
 
 <p>Nhập chính xác số CCCD để tra cứu</p>
 
-<input type="text" id="search" placeholder="Nhập số CCCD (12 số)...">
+<!-- KHU VỰC TÌM KIẾM CÓ NÚT -->
+<div class="search-box">
+    <input type="text" id="search" placeholder="Nhập số CCCD...">
+    <button onclick="performSearch()">🔍 Tìm kiếm</button>
+</div>
 
 <div id="summary"></div>
 
@@ -135,7 +164,7 @@ let data = [];
 
 const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ6WsXe_dmeIM5QgLrCgiBc4JgHLUGkHMfhR-moVKKPMR16ufMPMia8OYex4n8C0TB-LlkYHf-VKcjb/pub?gid=0&single=true&output=csv";
 
-// Load data
+// Load data từ Google Sheets
 fetch(sheetURL)
 .then(res => res.text())
 .then(csv => {
@@ -147,29 +176,43 @@ fetch(sheetURL)
     data = parsed.data;
 });
 
-// Tra cứu theo CCCD chính xác
-document.getElementById('search').addEventListener('input', function() {
+// Sự kiện bấm phím Enter khi đang gõ trong ô Input
+document.getElementById('search').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        performSearch();
+    }
+});
 
-    let keyword = this.value.trim();
+// Hàm xử lý tìm kiếm
+function performSearch() {
+    let inputVal = document.getElementById('search').value.trim();
 
-    // Chỉ hiển thị kết quả khi người dùng đã nhập dữ liệu
-    if (!keyword) {
+    if (!inputVal) {
+        alert("Vui lòng nhập số CCCD!");
         document.querySelector("#result tbody").innerHTML = "";
         document.getElementById("summary").innerText = "";
         return;
     }
 
-    // So sánh CHÍNH XÁC (=) số CCCD thay vì dùng .includes()
+    // Lọc tìm kiếm
     let filtered = data.filter(d => {
-        let cccd = (d["Số CCCD"] || "").toString().trim();
-        return cccd === keyword;
+        // Tự động quét các cột có tên liên quan đến CCCD/CMND
+        let cccd = (d["Số CCCD"] || d["CCCD"] || d["Số CMND"] || d["CMND"] || "").toString().trim();
+        return cccd === inputVal;
     });
+
+    if (filtered.length === 0) {
+        document.querySelector("#result tbody").innerHTML = `<tr><td colspan="7" style="color:red; font-weight:bold;">Không tìm thấy dữ liệu cho số CCCD: ${inputVal}</td></tr>`;
+        document.getElementById("summary").innerText = "Tổng số ngày: 0";
+        return;
+    }
 
     // GROUP THEO NHÂN VIÊN
     let grouped = {};
 
     filtered.forEach(d => {
-        let key = (d["Số CCCD"] || "") + "_" + (d["Họ và Tên"] || "");
+        let cccdVal = (d["Số CCCD"] || d["CCCD"] || d["Số CMND"] || d["CMND"] || "");
+        let key = cccdVal + "_" + (d["Họ và Tên"] || "");
 
         if (!grouped[key]) {
             grouped[key] = [];
@@ -184,7 +227,6 @@ document.getElementById('search').addEventListener('input', function() {
     for (let key in grouped) {
         let rows = grouped[key];
 
-        // 1. Tính tổng số ngày
         let sumNgayNhanVien = rows.reduce((sum, item) => {
             let ngay = parseFloat(item["Số ngày"]) || 0;
             return sum + ngay;
@@ -192,10 +234,12 @@ document.getElementById('search').addEventListener('input', function() {
 
         total += sumNgayNhanVien;
 
+        let currentCCCD = rows[0]["Số CCCD"] || rows[0]["CCCD"] || rows[0]["Số CMND"] || rows[0]["CMND"] || "";
+
         // Dòng tiêu đề nhân viên
         html += `
         <tr class="name-row">
-            <td colspan="7">${rows[0]["Họ và Tên"]} (CCCD: ${rows[0]["Số CCCD"] || ""}) - Tổng ngày: ${sumNgayNhanVien}</td>
+            <td colspan="7">${rows[0]["Họ và Tên"]} (CCCD: ${currentCCCD}) - Tổng ngày: ${sumNgayNhanVien}</td>
         </tr>
         `;
 
@@ -203,7 +247,7 @@ document.getElementById('search').addEventListener('input', function() {
             html += `
             <tr>
                 <td>${d["STT"] || ""}</td>
-                <td>${d["Số CCCD"] || ""}</td>
+                <td>${currentCCCD}</td>
                 <td>${d["Họ và Tên"] || ""}</td>                
                 <td>${d["Từ ngày"] || ""}</td>                
                 <td>${d["Đến ngày"] || ""}</td>
@@ -215,7 +259,7 @@ document.getElementById('search').addEventListener('input', function() {
 
     document.querySelector("#result tbody").innerHTML = html;
     document.getElementById("summary").innerText = "Tổng số ngày: " + total;
-});
+}
 
 // Auto refresh 60s
 setInterval(() => location.reload(), 60000);
