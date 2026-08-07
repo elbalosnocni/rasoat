@@ -85,6 +85,7 @@ button:hover {
 #summary {
     margin-top: 15px;
     font-weight: bold;
+    font-size: 18px;
 }
 
 table {
@@ -122,7 +123,7 @@ th {
     <a href="https://bangchamcong.pages.dev" target="_blank" class="nav-tab">📋 Chấm Công</a>
     <a href="https://noiquy.pages.dev" target="_blank" class="nav-tab">📜 Lỗi cơm</a>
     <a href="https://bhxh.pages.dev" target="_blank" class="nav-tab">🏥 BHXH</a>
-    <a href="#" class="nav-tab active">🔍 Rà soát</a>
+    <a href="#" class="nav-tab active">🏥 Rà soát</a>
     <a href="https://antoan.pages.dev" target="_blank" class="nav-tab">🛡️ An Toàn</a>
 </div>
 
@@ -183,6 +184,19 @@ document.getElementById('search').addEventListener('keypress', function(e) {
     }
 });
 
+// Hàm chuyển số tiền từ chuỗi dạng "638,156" hoặc "638156" thành số float
+function parseMoney(val) {
+    if (!val) return 0;
+    // Xóa tất cả dấu phẩy, dấu chấm hoặc khoảng trắng
+    let cleanStr = val.toString().replace(/[,.\s]/g, "");
+    return parseFloat(cleanStr) || 0;
+}
+
+// Hàm định dạng số tiền hiển thị có dấu phẩy (vd: 1234567 -> 1,234,567)
+function formatMoney(amount) {
+    return amount.toLocaleString('en-US');
+}
+
 // Hàm xử lý tìm kiếm
 function performSearch() {
     let inputVal = document.getElementById('search').value.trim();
@@ -196,14 +210,13 @@ function performSearch() {
 
     // Lọc tìm kiếm
     let filtered = data.filter(d => {
-        // Tự động quét các cột có tên liên quan đến CCCD/CMND
         let cccd = (d["Số CCCD"] || d["CCCD"] || d["Số CMND"] || d["CMND"] || "").toString().trim();
         return cccd === inputVal;
     });
 
     if (filtered.length === 0) {
         document.querySelector("#result tbody").innerHTML = `<tr><td colspan="7" style="color:red; font-weight:bold;">Không tìm thấy dữ liệu cho số CCCD: ${inputVal}</td></tr>`;
-        document.getElementById("summary").innerText = "Tổng số ngày: 0";
+        document.getElementById("summary").innerText = "Tổng số ngày: 0 | Tổng số tiền: 0 VNĐ";
         return;
     }
 
@@ -222,24 +235,33 @@ function performSearch() {
     });
 
     let html = "";
-    let total = 0;
+    let totalNgay = 0;
+    let totalTien = 0;
 
     for (let key in grouped) {
         let rows = grouped[key];
 
+        // 1. Tính tổng số ngày của nhân viên
         let sumNgayNhanVien = rows.reduce((sum, item) => {
             let ngay = parseFloat(item["Số ngày"]) || 0;
             return sum + ngay;
         }, 0);
 
-        total += sumNgayNhanVien;
+        // 2. Tính tổng số tiền của nhân viên
+        let sumTienNhanVien = rows.reduce((sum, item) => {
+            let tien = parseMoney(item["Số tiền"]);
+            return sum + tien;
+        }, 0);
+
+        totalNgay += sumNgayNhanVien;
+        totalTien += sumTienNhanVien;
 
         let currentCCCD = rows[0]["Số CCCD"] || rows[0]["CCCD"] || rows[0]["Số CMND"] || rows[0]["CMND"] || "";
 
-        // Dòng tiêu đề nhân viên
+        // Dòng tiêu đề nhân viên hiển thị cả Tổng ngày & Tổng tiền
         html += `
         <tr class="name-row">
-            <td colspan="7">${rows[0]["Họ và Tên"]} (CCCD: ${currentCCCD}) - Tổng ngày: ${sumNgayNhanVien}</td>
+            <td colspan="7">${rows[0]["Họ và Tên"]} (CCCD: ${currentCCCD}) - Tổng ngày: ${sumNgayNhanVien} | Tổng tiền: <span class="error">${formatMoney(sumTienNhanVien)}</span></td>
         </tr>
         `;
 
@@ -258,7 +280,7 @@ function performSearch() {
     }
 
     document.querySelector("#result tbody").innerHTML = html;
-    document.getElementById("summary").innerText = "Tổng số ngày: " + total;
+    document.getElementById("summary").innerText = `Tổng số ngày: ${totalNgay} | Tổng số tiền: ${formatMoney(totalTien)}`;
 }
 
 // Auto refresh 60s
