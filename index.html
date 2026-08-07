@@ -12,40 +12,40 @@ body {
 }
 
 /* THANH NAV TABS MỚI */
-        .nav-tabs{
-            display:flex;
-            justify-content:center;
-            gap:12px;
-            flex-wrap:wrap;
-            margin:20px auto;
-        }
-        
-        .nav-tab{
-            display:flex;
-            align-items:center;
-            gap:8px;
-            padding:12px 22px;
-            border-radius:30px;
-            background:#fff;
-            color:#334155;
-            font-weight:600;
-            text-decoration:none;
-            border:1px solid #e5e7eb;
-            transition:.25s;
-        }
-        
-        .nav-tab:hover{
-            transform:translateY(-2px);
-            box-shadow:0 8px 18px rgba(0,0,0,.12);
-            color:#2563eb;
-        }
-        
-        .nav-tab.active{
-            background:linear-gradient(135deg,#2563eb,#1e40af);
-            color:#fff;
-            border:none;
-        }
-    
+.nav-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 20px auto;
+}
+
+.nav-tab {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 22px;
+    border-radius: 30px;
+    background: #fff;
+    color: #334155;
+    font-weight: 600;
+    text-decoration: none;
+    border: 1px solid #e5e7eb;
+    transition: .25s;
+}
+
+.nav-tab:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 18px rgba(0,0,0,.12);
+    color: #2563eb;
+}
+
+.nav-tab.active {
+    background: linear-gradient(135deg, #2563eb, #1e40af);
+    color: #fff;
+    border: none;
+}
+
 h2 {
     margin-top: 20px;
 }
@@ -93,22 +93,23 @@ th {
 <body>
 
 <!-- THANH TAB TRUY CẬP CÁC TRANG -->
-    <div class="nav-tabs">
-        <a href="https://bangchamcong.pages.dev" target="_blank" class="nav-tab">📋 Chấm Công</a>
-        <a href="https://noiquy.pages.dev" target="_blank" class="nav-tab">📜 Lỗi cơm</a>
-        <a href="https://bhxh.pages.dev" target="_blank" class="nav-tab">🏥 BHXH</a>
-        <a href="#" class="nav-tab active">🏥 Rà soát</a>
-        <a href="https://antoan.pages.dev" target="_blank" class="nav-tab">🛡️ An Toàn</a>
-    </div>
-    
+<div class="nav-tabs">
+    <a href="https://bangchamcong.pages.dev" target="_blank" class="nav-tab">📋 Chấm Công</a>
+    <a href="https://noiquy.pages.dev" target="_blank" class="nav-tab">📜 Lỗi cơm</a>
+    <a href="https://bhxh.pages.dev" target="_blank" class="nav-tab">🏥 BHXH</a>
+    <a href="#" class="nav-tab active">🏥 Rà soát</a>
+    <a href="https://antoan.pages.dev" target="_blank" class="nav-tab">🛡️ An Toàn</a>
+</div>
+
 <h2>🔎 Danh sách cần rà soát</h2>
 <div style="margin-top:10px">
     <p>📱 Quét QR để tra cứu nhanh</p>
     <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://rasoat.pages.dev/" alt="QR Code">
-</div>    
-<p>Nhập tên để xem</p>
+</div> 
 
-<input type="text" id="search" placeholder="Ví Dụ: ELB">
+<p>Nhập chính xác số CCCD để tra cứu</p>
+
+<input type="text" id="search" placeholder="Nhập số CCCD (12 số)...">
 
 <div id="summary"></div>
 
@@ -116,13 +117,12 @@ th {
 <thead>
 <tr>
     <th>STT</th>
-    <th>Mã</th> 
-    <th>Họ và Tên</th>      
+    <th>Số CCCD</th> 
+    <th>Họ và Tên</th>     
     <th>Từ ngày</th>
     <th>Đến ngày</th>    
     <th>Số ngày</th>
     <th>Số tiền</th>
-    
 </tr>
 </thead>
 <tbody></tbody>
@@ -135,16 +135,7 @@ let data = [];
 
 const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ6WsXe_dmeIM5QgLrCgiBc4JgHLUGkHMfhR-moVKKPMR16ufMPMia8OYex4n8C0TB-LlkYHf-VKcjb/pub?gid=0&single=true&output=csv";
 
-// bỏ dấu tiếng Việt (MỚI - ĐÃ TRỊ LỖI Đ/đ)
-function removeVietnamese(str) {
-    if (!str) return "";
-    return str
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[đĐ]/g, "d");
-}
-
-// load data
+// Load data
 fetch(sheetURL)
 .then(res => res.text())
 .then(csv => {
@@ -156,24 +147,29 @@ fetch(sheetURL)
     data = parsed.data;
 });
 
-// search
+// Tra cứu theo CCCD chính xác
 document.getElementById('search').addEventListener('input', function() {
 
-    let keyword = removeVietnamese(this.value.toLowerCase());
+    let keyword = this.value.trim();
 
+    // Chỉ hiển thị kết quả khi người dùng đã nhập dữ liệu
+    if (!keyword) {
+        document.querySelector("#result tbody").innerHTML = "";
+        document.getElementById("summary").innerText = "";
+        return;
+    }
+
+    // So sánh CHÍNH XÁC (=) số CCCD thay vì dùng .includes()
     let filtered = data.filter(d => {
-        let ma = d["Mã"] || "";
-        let ten = d["Họ và Tên"] || "";
-
-        return removeVietnamese(ma.toLowerCase()).includes(keyword) ||
-               removeVietnamese(ten.toLowerCase()).includes(keyword);
+        let cccd = (d["Số CCCD"] || "").toString().trim();
+        return cccd === keyword;
     });
 
     // GROUP THEO NHÂN VIÊN
     let grouped = {};
 
     filtered.forEach(d => {
-        let key = d["Mã"] + "_" + d["Họ và Tên"];
+        let key = (d["Số CCCD"] || "") + "_" + (d["Họ và Tên"] || "");
 
         if (!grouped[key]) {
             grouped[key] = [];
@@ -183,24 +179,23 @@ document.getElementById('search').addEventListener('input', function() {
     });
 
     let html = "";
-    let total = 0; // Thay đổi: biến này sẽ lưu tổng tất cả số ngày tìm được
+    let total = 0;
 
     for (let key in grouped) {
         let rows = grouped[key];
 
-        // 1. Tính tổng số ngày của riêng nhân viên này
+        // 1. Tính tổng số ngày
         let sumNgayNhanVien = rows.reduce((sum, item) => {
             let ngay = parseFloat(item["Số ngày"]) || 0;
             return sum + ngay;
         }, 0);
 
-        // 2. Cộng vào tổng số ngày chung
         total += sumNgayNhanVien;
 
-        // Dòng tiêu đề nhân viên (sử dụng sumNgayNhanVien thay cho rows.length)
+        // Dòng tiêu đề nhân viên
         html += `
         <tr class="name-row">
-            <td colspan="7">${rows[0]["Họ và Tên"]} (Mã: ${rows[0]["Mã"]}) - Tổng ngày: ${sumNgayNhanVien}</td>
+            <td colspan="7">${rows[0]["Họ và Tên"]} (CCCD: ${rows[0]["Số CCCD"] || ""}) - Tổng ngày: ${sumNgayNhanVien}</td>
         </tr>
         `;
 
@@ -208,7 +203,7 @@ document.getElementById('search').addEventListener('input', function() {
             html += `
             <tr>
                 <td>${d["STT"] || ""}</td>
-                <td>${d["Mã"] || ""}</td>
+                <td>${d["Số CCCD"] || ""}</td>
                 <td>${d["Họ và Tên"] || ""}</td>                
                 <td>${d["Từ ngày"] || ""}</td>                
                 <td>${d["Đến ngày"] || ""}</td>
@@ -222,7 +217,7 @@ document.getElementById('search').addEventListener('input', function() {
     document.getElementById("summary").innerText = "Tổng số ngày: " + total;
 });
 
-// auto refresh 60s
+// Auto refresh 60s
 setInterval(() => location.reload(), 60000);
 
 </script>
