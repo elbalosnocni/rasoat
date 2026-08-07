@@ -187,7 +187,10 @@ th {
 <script>
 let data = [];
 let isAdmin = false;
+let idleTimer = null;
+
 const ADMIN_PASS = "admin123"; // 👈 Đổi mật khẩu Admin tại đây
+const IDLE_LIMIT = 5 * 60 * 1000; // 5 phút (tính bằng milisecond)
 
 const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ6WsXe_dmeIM5QgLrCgiBc4JgHLUGkHMfhR-moVKKPMR16ufMPMia8OYex4n8C0TB-LlkYHf-VKcjb/pub?gid=0&single=true&output=csv";
 
@@ -203,28 +206,89 @@ fetch(sheetURL)
     data = parsed.data;
 });
 
-// Đăng nhập / Đăng xuất Admin
+// Kiểm tra trạng thái đăng nhập từ sessionStorage khi tải trang
+window.addEventListener('DOMContentLoaded', () => {
+    const sessionAuth = sessionStorage.getItem('adminAuthenticated');
+    const lastActivity = sessionStorage.getItem('lastAdminActivity');
+
+    if (sessionAuth === 'true' && lastActivity) {
+        const timePassed = Date.now() - parseInt(lastActivity, 10);
+        if (timePassed < IDLE_LIMIT) {
+            activateAdminUI();
+            startIdleTimer();
+        } else {
+            logoutAdmin(false);
+        }
+    }
+});
+
+// Kích hoạt giao diện Admin
+function activateAdminUI() {
+    isAdmin = true;
+    sessionStorage.setItem('adminAuthenticated', 'true');
+    sessionStorage.setItem('lastAdminActivity', Date.now().toString());
+
+    document.getElementById('adminBadge').style.display = 'inline-block';
+    document.getElementById('authBtn').innerText = '🚪 Đăng xuất';
+    document.getElementById('search').placeholder = 'Nhập Họ Tên hoặc CCCD...';
+    document.getElementById('searchGuide').innerText = 'Chế độ Admin: Nhập Họ Tên (tìm tương đối) hoặc Số CCCD';
+}
+
+// Đăng xuất Admin
+function logoutAdmin(showAlert = true) {
+    isAdmin = false;
+    sessionStorage.removeItem('adminAuthenticated');
+    sessionStorage.removeItem('lastAdminActivity');
+    
+    if (idleTimer) clearTimeout(idleTimer);
+
+    document.getElementById('adminBadge').style.display = 'none';
+    document.getElementById('authBtn').innerText = '🔑 Admin Log In';
+    document.getElementById('search').placeholder = 'Nhập số CCCD...';
+    document.getElementById('searchGuide').innerText = 'Nhập chính xác số CCCD để tra cứu';
+
+    if (showAlert) {
+        alert("Đã đăng xuất quyền Admin.");
+    }
+}
+
+// Bật / Tắt Admin
 function toggleAdmin() {
     if (!isAdmin) {
         let pass = prompt("Nhập mật khẩu Admin để tìm kiếm theo tên:");
         if (pass === ADMIN_PASS) {
-            isAdmin = true;
-            document.getElementById('adminBadge').style.display = 'inline-block';
-            document.getElementById('authBtn').innerText = '🚪 Đăng xuất';
-            document.getElementById('search').placeholder = 'Nhập Họ Tên hoặc CCCD...';
-            document.getElementById('searchGuide').innerText = 'Chế độ Admin: Nhập Họ Tên (tìm tương đối) hoặc Số CCCD';
-            alert("Đã kích hoạt quyền Admin! Bạn có thể tìm kiếm theo Họ Tên.");
+            activateAdminUI();
+            startIdleTimer();
+            alert("Đã kích hoạt quyền Admin! Hệ thống sẽ tự động đăng xuất sau 5 phút không hoạt động.");
         } else if (pass !== null) {
             alert("Mật khẩu không chính xác!");
         }
     } else {
-        isAdmin = false;
-        document.getElementById('adminBadge').style.display = 'none';
-        document.getElementById('authBtn').innerText = '🔑 Admin Log In';
-        document.getElementById('search').placeholder = 'Nhập số CCCD...';
-        document.getElementById('searchGuide').innerText = 'Nhập chính xác số CCCD để tra cứu';
-        alert("Đã đăng xuất quyền Admin.");
+        logoutAdmin(true);
     }
+}
+
+// Đếm ngược 5 phút không hoạt động
+function resetIdleTimer() {
+    if (!isAdmin) return;
+
+    sessionStorage.setItem('lastAdminActivity', Date.now().toString());
+
+    if (idleTimer) clearTimeout(idleTimer);
+
+    idleTimer = setTimeout(() => {
+        logoutAdmin(false);
+        alert("Phiên làm việc Admin đã hết hạn do 5 phút không có thao tác!");
+    }, IDLE_LIMIT);
+}
+
+function startIdleTimer() {
+    // Các sự kiện tương tác của người dùng để reset bộ đếm thời gian
+    const events = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'];
+    events.forEach(evt => {
+        window.addEventListener(evt, resetIdleTimer, { passive: true });
+    });
+    resetIdleTimer();
 }
 
 // Sự kiện bấm phím Enter khi đang gõ trong ô Input
@@ -261,10 +325,8 @@ function performSearch() {
         let name = (d["Họ và Tên"] || d["Họ Tên"] || d["Tên"] || "").toString().trim().toLowerCase();
 
         if (isAdmin) {
-            // Admin: Tìm khớp chính xác CCCD HOẶC chứa Tên
             return cccd === inputVal || name.includes(inputVal);
         } else {
-            // User thường: Chỉ tìm khớp chính xác CCCD
             return cccd === inputVal;
         }
     });
@@ -329,7 +391,7 @@ function performSearch() {
     document.getElementById("summary").innerText = `Tổng số ngày: ${totalNgay} | Tổng số tiền: ${formatMoney(totalTien)}`;
 }
 
-// Auto refresh 60s
+// Auto refresh 60s (Sẽ giữ nguyên phiên nếu vẫn còn trong hạn 5 phút)
 setInterval(() => location.reload(), 60000);
 
 </script>
