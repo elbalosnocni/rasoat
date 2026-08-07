@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Danh sách cần rà soát</title>
+
+<style>
+body {
+    font-family: Arial;
+    text-align: center;
+    background: #f5f5f5;
+}
+
+/* THANH NAV TABS MỚI */
+        .nav-tabs{
+            display:flex;
+            justify-content:center;
+            gap:12px;
+            flex-wrap:wrap;
+            margin:20px auto;
+        }
+        
+        .nav-tab{
+            display:flex;
+            align-items:center;
+            gap:8px;
+            padding:12px 22px;
+            border-radius:30px;
+            background:#fff;
+            color:#334155;
+            font-weight:600;
+            text-decoration:none;
+            border:1px solid #e5e7eb;
+            transition:.25s;
+        }
+        
+        .nav-tab:hover{
+            transform:translateY(-2px);
+            box-shadow:0 8px 18px rgba(0,0,0,.12);
+            color:#2563eb;
+        }
+        
+        .nav-tab.active{
+            background:linear-gradient(135deg,#2563eb,#1e40af);
+            color:#fff;
+            border:none;
+        }
+    
+h2 {
+    margin-top: 20px;
+}
+
+input {
+    padding: 10px;
+    width: 320px;
+    font-size: 16px;
+    margin-top: 15px;
+}
+
+#summary {
+    margin-top: 10px;
+    font-weight: bold;
+}
+
+table {
+    margin: 20px auto;
+    border-collapse: collapse;
+    width: 95%;
+    background: white;
+}
+
+th, td {
+    border: 1px solid #ccc;
+    padding: 8px;
+}
+
+th {
+    background: #4CAF50;
+    color: white;
+}
+
+.name-row {
+    background: #e8f5e9;
+    font-weight: bold;
+}
+
+.error {
+    color: red;
+}
+</style>
+</head>
+
+<body>
+
+<!-- THANH TAB TRUY CẬP CÁC TRANG -->
+    <div class="nav-tabs">
+        <a href="https://bangchamcong.pages.dev" target="_blank" class="nav-tab">📋 Chấm Công</a>
+        <a href="#" class="nav-tab active">📜 Nội Quy</a>
+        <a href="https://bhxh.pages.dev" target="_blank" class="nav-tab">🏥 BHXH</a>
+        <a href="https://antoan.pages.dev" target="_blank" class="nav-tab">🛡️ An Toàn</a>
+    </div>
+    
+<h2>🔎 Danh sách cần rà soát</h2>
+<div style="margin-top:10px">
+    <p>📱 Quét QR để tra cứu nhanh</p>
+    <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://.pages.dev/" alt="QR Code">
+</div>    
+<p>Nhập tên để xem</p>
+
+<input type="text" id="search" placeholder="VD: ELB">
+
+<div id="summary"></div>
+
+<table id="result">
+<thead>
+<tr>
+    <th>STT</th>
+    <th>Mã</th> 
+    <th>Họ và Tên</th>      
+    <th>Từ ngày</th>
+    <th>Đến ngày</th>    
+    <th>Số ngày</th>
+    <th>Số tiền</th>
+    
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+<script>
+let data = [];
+
+const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT6pmKN7FtnBUgeQ74wEk3KGL8S4zIK-S3ned-f9GBIGdHKvbUxmRcXSIASmv5T3NO-yvNX1oVTX8qe/pub?gid=0&single=true&output=csv";
+
+// bỏ dấu tiếng Việt (MỚI - ĐÃ TRỊ LỖI Đ/đ)
+function removeVietnamese(str) {
+    if (!str) return "";
+    return str
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[đĐ]/g, "d");
+}
+
+// load data
+fetch(sheetURL)
+.then(res => res.text())
+.then(csv => {
+    const parsed = Papa.parse(csv, {
+        header: true,
+        skipEmptyLines: true
+    });
+
+    data = parsed.data;
+});
+
+// search
+document.getElementById('search').addEventListener('input', function() {
+
+    let keyword = removeVietnamese(this.value.toLowerCase());
+
+    let filtered = data.filter(d => {
+        let ma = d["Mã"] || "";
+        let ten = d["Họ và Tên"] || "";
+
+        return removeVietnamese(ma.toLowerCase()).includes(keyword) ||
+               removeVietnamese(ten.toLowerCase()).includes(keyword);
+    });
+
+    // GROUP THEO NHÂN VIÊN
+    let grouped = {};
+
+    filtered.forEach(d => {
+        let key = d["Mã"] + "_" + d["Họ và Tên"];
+
+        if (!grouped[key]) {
+            grouped[key] = [];
+        }
+
+        grouped[key].push(d);
+    });
+
+    let html = "";
+    let total = 0;
+
+    for (let key in grouped) {
+        let rows = grouped[key];
+
+        // dòng tiêu đề nhân viên
+        html += `
+        <tr class="name-row">
+            <td colspan="7">${rows[0]["Họ và Tên"]} (Mã: ${rows[0]["Mã"]}) - Tổng lỗi: ${rows.length}</td>
+        </tr>
+        `;
+
+        rows.forEach(d => {
+            total++;
+
+            html += `
+            <tr>
+                <td>${d["STT"] || ""}</td>
+                <td>${d["Mã"] || ""}</td>
+                <td>${d["Họ và Tên"] || ""}</td>                
+                <td>${d["Từ ngày"] || ""}</td>                
+                <td>${d["Đến ngày"] || ""}</td>
+                <td>${d["Số ngày"] || ""}</td>
+                <td class="error">${d["Số tiền"] || ""}</td>
+                
+            </tr>`;
+        });
+    }
+
+    document.querySelector("#result tbody").innerHTML = html;
+    document.getElementById("summary").innerText = "Tổng số ngày: " + total;
+});
+
+// auto refresh 60s
+setInterval(() => location.reload(), 60000);
+
+</script>
+
+</body>
+</html>
