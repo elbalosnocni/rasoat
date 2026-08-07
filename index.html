@@ -182,21 +182,28 @@ document.getElementById('search').addEventListener('input', function() {
     });
 
     let html = "";
-    let total = 0;
+    let total = 0; // Thay đổi: biến này sẽ lưu tổng tất cả số ngày tìm được
 
     for (let key in grouped) {
         let rows = grouped[key];
 
-        // dòng tiêu đề nhân viên
+        // 1. Tính tổng số ngày của riêng nhân viên này
+        let sumNgayNhanVien = rows.reduce((sum, item) => {
+            let ngay = parseFloat(item["Số ngày"]) || 0;
+            return sum + ngay;
+        }, 0);
+
+        // 2. Cộng vào tổng số ngày chung
+        total += sumNgayNhanVien;
+
+        // Dòng tiêu đề nhân viên (sử dụng sumNgayNhanVien thay cho rows.length)
         html += `
         <tr class="name-row">
-            <td colspan="7">${rows[0]["Họ và Tên"]} (Mã: ${rows[0]["Mã"]}) - Tổng ngày: ${rows.length}</td>
+            <td colspan="7">${rows[0]["Họ và Tên"]} (Mã: ${rows[0]["Mã"]}) - Tổng ngày: ${sumNgayNhanVien}</td>
         </tr>
         `;
 
         rows.forEach(d => {
-            total++;
-
             html += `
             <tr>
                 <td>${d["STT"] || ""}</td>
@@ -206,7 +213,6 @@ document.getElementById('search').addEventListener('input', function() {
                 <td>${d["Đến ngày"] || ""}</td>
                 <td>${d["Số ngày"] || ""}</td>
                 <td class="error">${d["Số tiền"] || ""}</td>
-                
             </tr>`;
         });
     }
