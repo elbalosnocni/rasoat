@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Rà soát khảo sát</title>
+<style>
+:root{--p:#1769aa;--p2:#0f4f83;--bg:#f4f7fb;--card:#fff;--line:#dbe3ec;--muted:#64748b;--ok:#15803d;--danger:#b42318}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:#172033}
+.wrap{max-width:1120px;margin:auto;padding:18px}.top{background:linear-gradient(135deg,#1769aa,#123e68);color:#fff;border-radius:18px;padding:22px;margin-bottom:16px}
+.top h1{margin:0 0 6px;font-size:26px}.top p{margin:0;opacity:.9}.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:0 5px 18px #102a4310}
+.hidden{display:none!important}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.full{grid-column:1/-1}
+label{display:block;font-weight:700;margin:12px 0 6px}input,select,textarea{width:100%;padding:11px 12px;border:1px solid #cbd5e1;border-radius:10px;font:inherit;background:#fff}textarea{min-height:96px}
+button{border:0;border-radius:10px;padding:11px 16px;font-weight:800;cursor:pointer;background:var(--p);color:#fff}button:hover{background:var(--p2)}button.secondary{background:#667085}button.danger{background:#b42318}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+.notice{background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:14px;line-height:1.55}.employee{background:#eef7ff;border:1px solid #c9e2f7;padding:12px;border-radius:12px;margin-bottom:14px}
+.err{color:var(--danger);min-height:22px;margin-top:8px}.muted{color:var(--muted);font-size:13px}.req{color:var(--danger)}
+.question{border:1px solid var(--line);border-radius:13px;padding:15px;margin:12px 0}.section-title{font-size:17px;font-weight:900;margin:22px 0 8px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.stat{border:1px solid var(--line);border-radius:13px;padding:14px;text-align:center}.stat b{display:block;font-size:25px;margin-top:4px}
+.table{overflow:auto;border:1px solid var(--line);border-radius:12px}.table table{width:100%;border-collapse:collapse;min-width:720px}.table th,.table td{padding:10px;border-bottom:1px solid #edf1f5;text-align:left}.table th{background:#f8fafc;position:sticky;top:0}
+.tabs{display:flex;gap:8px;overflow:auto;margin-bottom:15px}.tabs button{white-space:nowrap}.tabs button.active{background:#0f4f83}
+.qrow{display:grid;grid-template-columns:1.2fr 2fr 1fr 80px 90px;gap:8px;align-items:end;border:1px solid var(--line);padding:10px;border-radius:10px;margin:8px 0}
+.pill{display:inline-block;padding:4px 9px;border-radius:999px;background:#e8f1f8;font-size:12px;font-weight:800}
+@media(max-width:720px){.wrap{padding:10px}.grid,.stats{grid-template-columns:1fr}.qrow{grid-template-columns:1fr 1fr}.top h1{font-size:22px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1 id="appTitle">Rà soát</h1><p id="appDesc">Khảo sát nội bộ</p></div>
+
+  <section id="login" class="card">
+    <h2>Đăng nhập nhân viên</h2>
+    <p class="muted">Nhập CCCD để bắt đầu khảo sát.</p>
+    <label>CCCD</label><input id="cccd" inputmode="numeric" maxlength="12" placeholder="Nhập số CCCD">
+    <div id="loginErr" class="err"></div>
+    <button onclick="employeeLogin()">Tiếp tục</button>
+    <button class="secondary" onclick="showAdminLogin()">Admin</button>
+  </section>
+
+  <section id="consent" class="card hidden">
+    <h2 id="consentTitle">Thông báo</h2>
+    <div id="consentText" class="notice"></div>
+    <div class="employee" id="empBox"></div>
+    <label><input type="checkbox" id="agree" style="width:auto"> Tôi đồng ý</label>
+    <div class="actions"><button onclick="startSurvey()">Bắt đầu khảo sát</button><button class="secondary" onclick="logout()">Thoát</button></div>
+    <div id="consentErr" class="err"></div>
+  </section>
+
+  <section id="form" class="card hidden">
+    <div id="formHead"></div><div id="questions"></div>
+    <div id="formErr" class="err"></div>
+    <div class="actions"><button onclick="submitSurvey()">Gửi khảo sát</button><button class="secondary" onclick="logout()">Thoát</button></div>
+  </section>
+
+  <section id="adminLogin" class="card hidden">
+    <h2>Admin</h2><label>Tài khoản</label><input id="au" autocomplete="username">
+    <label>Mật khẩu</label><input id="ap" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')adminLogin()">
+    <div id="adminErr" class="err"></div><div class="actions"><button onclick="adminLogin()">Đăng nhập</button><button class="secondary" onclick="show('login')">Quay lại</button></div>
+  </section>
+
+  <section id="admin" class="card hidden">
+    <div class="actions" style="justify-content:space-between"><h2 style="margin:0">Admin Survey Studio</h2><button class="secondary" onclick="adminLogout()">Đăng xuất</button></div>
+    <div class="tabs">
+      <button id="tabDash" onclick="adminTab('dash')">Dashboard</button>
+      <button id="tabContent" onclick="adminTab('content')">Nội dung</button>
+      <button id="tabQuestions" onclick="adminTab('questions')">Câu hỏi</button>
+      <button id="tabPassword" onclick="adminTab('password')">Mật khẩu</button>
+    </div>
+
+    <div id="dashTab">
+      <div class="stats" id="stats"></div><div class="actions"><button onclick="loadDashboard()">↻ Làm mới</button></div>
+      <div class="table" style="margin-top:15px"><table><thead><tr><th>Mã NV</th><th>Họ tên</th><th>CCCD</th><th>Trạng thái</th><th>Cập nhật</th></tr></thead><tbody id="rows"></tbody></table></div>
+    </div>
+
+    <div id="contentTab" class="hidden">
+      <h3>Nội dung khảo sát</h3><div id="contentForm"></div><div class="actions"><button onclick="saveSurvey()">Lưu nội dung</button><button onclick="setStatus('PUBLISHED')">Mở khảo sát</button><button class="danger" onclick="setStatus('CLOSED')">Đóng khảo sát</button></div>
+    </div>
+
+    <div id="questionsTab" class="hidden">
+      <h3>Form Builder</h3><p class="muted">Thay đổi câu hỏi, loại câu hỏi, bắt buộc và đáp án mà không sửa frontend.</p>
+      <div id="questionEditor"></div>
+      <hr>
+      <h3>Thêm câu hỏi</h3><div id="newQuestion"></div><button onclick="addQuestion()">+ Thêm câu hỏi</button>
+    </div>
+
+    <div id="passwordTab" class="hidden">
+      <h3>Đổi mật khẩu Admin</h3><label>Mật khẩu cũ</label><input id="oldpw" type="password"><label>Mật khẩu mới</label><input id="newpw" type="password"><label>Xác nhận</label><input id="cfpw" type="password"><div id="pwerr" class="err"></div><button onclick="changePassword()">Đổi mật khẩu</button>
+    </div>
+  </section>
+</div>
+
+<script>
+'use strict';
+const API_URL='https://script.google.com/macros/s/AKfycbxhngXz5IXZ-Oge8Ro3pkSCs4uzssxQGUbZX5kX4AjUl1fFIj2qWRw7QZRxez8eNrpV/exec';
+const SURVEY_CODE=new URLSearchParams(location.search).get('survey')||'KSTT_2026';
+let survey=null, questions=[], employee=null, adminToken=localStorage.getItem('rasoatAdminToken')||'', empToken='';
+
+const $=id=>document.getElementById(id);
+function show(id){['login','consent','form','adminLogin','admin'].forEach(x=>$(x).classList.toggle('hidden',x!==id));scrollTo({top:0,behavior:'smooth'})}
+async function api(action,payload={}){const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action,...payload})});if(!r.ok)throw Error('API HTTP '+r.status);return r.json()}
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
+function qOptions(q){return q.Options||[]}
+async function boot(){try{const d=await api('getSurvey',{code:SURVEY_CODE});if(!d.ok){$('loginErr').textContent=d.message;return}survey=d.survey;$('appTitle').textContent=survey.Title||survey.Name;$('appDesc').textContent=survey.Description||'';$('consentText').textContent=survey.ConsentText||''}catch(e){$('loginErr').textContent=e.message}}
+async function employeeLogin(){const c=$('cccd').value.replace(/\D/g,'');$('loginErr').textContent='';try{const d=await api('employeeLogin',{code:SURVEY_CODE,cccd:c});if(!d.ok){$('loginErr').textContent=d.message;return}empToken=d.token;employee=d.employee;survey=d.survey;$('empBox').innerHTML='<b>'+esc(employee.hoTen)+'</b><br>Mã NV: '+esc(employee.maNV)+'<br>CCCD: '+esc(employee.cccd);$('consentText').textContent=survey.ConsentText||'';show('consent')}catch(e){$('loginErr').textContent=e.message}}
+async function startSurvey(){if(!$('agree').checked){$('consentErr').textContent='Vui lòng xác nhận đồng ý.';return}try{const d=await api('adminGetSurvey',{token:adminToken,code:SURVEY_CODE});if(d.ok){questions=d.questions}else{questions=(await api('getSurvey',{code:SURVEY_CODE})).questions||[]}renderForm();show('form')}catch(e){ // employee API fallback: questions are loaded through getSurvey
+  const d=await api('getSurvey',{code:SURVEY_CODE});questions=d.questions||[];renderForm();show('form')
+}}
+function renderForm(){let last='';let html='';for(const q of questions){if(q.Section!==last){last=q.Section;html+='<div class="section-title">'+esc(last)+'</div>'}html+='<div class="question"><label>'+esc(q.Label)+(q.Required?' <span class="req">*</span>':'')+'</label>'+control(q) +(q.HelpText?'<div class="muted">'+esc(q.HelpText)+'</div>':'')+'</div>'}$('questions').innerHTML=html;$('formHead').innerHTML='<h2>'+esc(survey.Title)+'</h2><div class="muted">'+esc(survey.Description||'')+'</div>'}
+function control(q){const id='q_'+q.QuestionId,o=qOptions(q);if(q.Type==='textarea')return '<textarea id="'+id+'" placeholder="'+esc(q.Placeholder)+'"></textarea>';if(q.Type==='date')return '<input id="'+id+'" type="date">';if(q.Type==='number')return '<input id="'+id+'" type="number" placeholder="'+esc(q.Placeholder)+'">';if(q.Type==='select')return '<select id="'+id+'"><option value="">-- Chọn --</option>'+o.map(x=>'<option>'+esc(x)+'</option>').join('')+'</select>';if(q.Type==='multiselect')return '<div>'+o.map(x=>'<label style="font-weight:400"><input class="multi" data-q="'+esc(q.QuestionId)+'" type="checkbox" value="'+esc(x)+'" style="width:auto"> '+esc(x)+'</label>').join('')+'</div>';if(q.Type==='radio')return '<div>'+o.map(x=>'<label style="font-weight:400"><input class="radio" data-q="'+esc(q.QuestionId)+'" name="'+id+'" type="radio" value="'+esc(x)+'" style="width:auto"> '+esc(x)+'</label>').join('')+'</div>';return '<input id="'+id+'" type="text" placeholder="'+esc(q.Placeholder)+'">'}
+function collect(){const a={};for(const q of questions){const id='q_'+q.QuestionId;if(q.Type==='multiselect')a[q.QuestionId]=[...document.querySelectorAll('.multi[data-q="'+CSS.escape(q.QuestionId)+'"]:checked')].map(x=>x.value);else if(q.Type==='radio'){const x=document.querySelector('input.radio[data-q="'+CSS.escape(q.QuestionId)+'"]:checked');a[q.QuestionId]=x?x.value:''}else a[q.QuestionId]=$(id)?.value||''}return a}
+async function submitSurvey(){$('formErr').textContent='';const answers=collect();try{const d=await api('saveSurveyResponse',{code:SURVEY_CODE,token:empToken,consent:true,answers});if(!d.ok){$('formErr').textContent=d.message;return}alert(d.message);logout()}catch(e){$('formErr').textContent=e.message}}
+function logout(){empToken='';employee=null;$('cccd').value='';$('agree').checked=false;show('login')}
+function showAdminLogin(){show('adminLogin')}
+async function adminLogin(){try{const d=await api('adminLogin',{username:$('au').value,password:$('ap').value});if(!d.ok){$('adminErr').textContent=d.message;return}adminToken=d.token;localStorage.setItem('rasoatAdminToken',adminToken);show('admin');await adminTab('dash')}catch(e){$('adminErr').textContent=e.message}}
+async function adminTab(tab){['dash','content','questions','password'].forEach(x=>$(x+'Tab').classList.toggle('hidden',x!==tab));if(tab==='dash')loadDashboard();if(tab==='content'||tab==='questions'){const d=await api('adminGetSurvey',{token:adminToken,code:SURVEY_CODE});if(!d.ok){alert(d.message);return}survey=d.survey;questions=d.questions;tab==='content'?renderContent():renderQuestionEditor()}}
+async function loadDashboard(){const d=await api('adminDashboard',{token:adminToken,code:SURVEY_CODE});if(!d.ok){alert(d.message);return}const s=d.summary;$('stats').innerHTML=[['Tổng',s.total],['Hoàn tất',s.completed],['Từ chối',s.refused],['Chưa hoàn tất',s.inProgress+s.notStarted]].map(x=>'<div class="stat">'+x[0]+'<b>'+x[1]+'</b></div>').join('');$('rows').innerHTML=d.rows.map(r=>'<tr><td>'+esc(r.maNV)+'</td><td>'+esc(r.hoTen)+'</td><td>'+esc(r.cccd)+'</td><td><span class="pill">'+esc(r.status)+'</span></td><td>'+esc(r.updatedAt)+'</td></tr>').join('')}
+function renderContent(){$('contentForm').innerHTML='<div class="grid"><div><label>Tên khảo sát</label><input id="sName" value="'+esc(survey.Name)+'"></div><div><label>Tiêu đề</label><input id="sTitle" value="'+esc(survey.Title)+'"></div><div class="full"><label>Mô tả</label><textarea id="sDesc">'+esc(survey.Description)+'</textarea></div><div class="full"><label>Nội dung đồng ý</label><textarea id="sConsent">'+esc(survey.ConsentText)+'</textarea></div><div><label>Bắt đầu</label><input id="sStart" type="datetime-local" value="'+toLocal(survey.StartAt)+'"></div><div><label>Kết thúc</label><input id="sEnd" type="datetime-local" value="'+toLocal(survey.EndAt)+'"></div><div><label>Version</label><input id="sVersion" type="number" value="'+esc(survey.Version)+'"></div><div><label>Trạng thái</label><input value="'+esc(survey.Status)+'" disabled></div></div>'}
+function toLocal(x){if(!x)return'';const d=new Date(x);return isNaN(d)?'':new Date(d-d.getTimezoneOffset()*60000).toISOString().slice(0,16)}
+async function saveSurvey(){const patch={Name:$('sName').value,Title:$('sTitle').value,Description:$('sDesc').value,ConsentText:$('sConsent').value,StartAt:$('sStart').value,EndAt:$('sEnd').value,Version:Number($('sVersion').value)||1};const d=await api('adminSaveSurvey',{token:adminToken,code:SURVEY_CODE,patch});if(!d.ok)alert(d.message);else alert('Đã lưu nội dung.')}
+async function setStatus(status){const d=await api('adminSetStatus',{token:adminToken,code:SURVEY_CODE,status});if(d.ok){alert('Đã cập nhật trạng thái');adminTab('content')}else alert(d.message||'Lỗi')}
+function renderQuestionEditor(){let html='';for(const q of questions){html+='<div class="qrow"><div><label>Section</label><input id="sec_'+q.QuestionId+'" value="'+esc(q.Section)+'"></div><div><label>Câu hỏi</label><input id="lab_'+q.QuestionId+'" value="'+esc(q.Label)+'"></div><div><label>Loại</label><select id="typ_'+q.QuestionId+'">'+['text','textarea','date','number','select','radio','multiselect'].map(t=>'<option '+(q.Type===t?'selected':'')+'>'+t+'</option>').join('')+'</select></div><div><label>Bắt buộc</label><input id="req_'+q.QuestionId+'" type="checkbox" '+(q.Required?'checked':'')+'></div><div><button onclick="updateQuestion(\''+q.QuestionId+'\')">Lưu</button><button class="danger" onclick="deleteQuestion(\''+q.QuestionId+'\')">Xóa</button></div><div class="full"><label>Đáp án (ngăn cách bằng |)</label><input id="opt_'+q.QuestionId+'" value="'+esc(q.Options.join('|'))+'"></div></div>'}$('questionEditor').innerHTML=html;$('newQuestion').innerHTML='<div class="grid"><input id="nsec" placeholder="Section"><input id="nlabel" placeholder="Nội dung câu hỏi"><select id="ntype"><option>text</option><option>textarea</option><option>date</option><option>number</option><option>select</option><option>radio</option><option>multiselect</option></select><input id="nopt" placeholder="Đáp án: A|B|C"><label><input id="nreq" type="checkbox" style="width:auto"> Bắt buộc</label></div>'}
+async function updateQuestion(id){const q={Section:$('sec_'+id).value,Label:$('lab_'+id).value,Type:$('typ_'+id).value,Required:$('req_'+id).checked,Options:$('opt_'+id).value.split('|').map(x=>x.trim()).filter(Boolean)};const d=await api('adminUpdateQuestion',{token:adminToken,questionId:id,question:q});if(d.ok)alert('Đã lưu');else alert(d.message)}
+async function deleteQuestion(id){if(!confirm('Ẩn câu hỏi này?'))return;const d=await api('adminDeleteQuestion',{token:adminToken,questionId:id});if(d.ok)adminTab('questions');else alert(d.message)}
+async function addQuestion(){const q={Section:$('nsec').value,Label:$('nlabel').value,Type:$('ntype').value,Required:$('nreq').checked,Options:$('nopt').value.split('|').map(x=>x.trim()).filter(Boolean),SortOrder:999};if(!q.Label)return alert('Nhập nội dung câu hỏi');const d=await api('adminAddQuestion',{token:adminToken,code:SURVEY_CODE,question:q});if(d.ok)adminTab('questions');else alert(d.message)}
+async function changePassword(){const d=await api('adminChangePassword',{token:adminToken,oldPassword:$('oldpw').value,newPassword:$('newpw').value,confirmPassword:$('cfpw').value});if(d.ok)alert('Đã đổi mật khẩu');else $('pwerr').textContent=d.message||'Không thể đổi mật khẩu'}
+async function adminLogout(){try{await api('adminLogout',{token:adminToken})}catch(e){}adminToken='';localStorage.removeItem('rasoatAdminToken');show('login')}
+boot();
+</script>
+</body>
+</html>
