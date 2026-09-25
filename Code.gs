@@ -595,6 +595,9 @@ function maskCCCD_(v){const s=normalizeCCCD_(v);return s.length>4?'*'.repeat(s.l
 function clean_(v,n){return String(v??'').trim().slice(0,n||CFG.MAX_TEXT);}
 function isEmptyAnswer_(v){if(Array.isArray(v))return v.length===0;return String(v??'').trim()==='';}
 function isActive_(v){return v===true||String(v).toLowerCase()==='true'||String(v).toLowerCase()==='yes';}
+function isTrue_(v){
+  return v === true || String(v).toLowerCase() === 'true' || String(v).toLowerCase() === 'yes' || v === 1;
+}
 function dateMs_(v){const d=v instanceof Date?v:new Date(v);const t=d.getTime();return isNaN(t)?0:t;}
 function formatDate_(v){if(!v)return'';const d=v instanceof Date?v:new Date(v);return isNaN(d)?String(v):Utilities.formatDate(d,Session.getScriptTimeZone(),'dd/MM/yyyy HH:mm:ss');}
 function dateISO_(v){if(!v)return'';const d=v instanceof Date?v:new Date(v);return isNaN(d)?String(v):d.toISOString();}
