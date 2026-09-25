@@ -69,6 +69,7 @@
   .muted{color:var(--muted);font-size:13px}
   .req{color:var(--danger)}
   .question{border:1px solid var(--line);border-radius:13px;padding:15px;margin:12px 0}
+  #formHead h2,#consentHead h2{font-weight:900}
   .section-title{font-size:17px;font-weight:900;margin:22px 0 8px}
   .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
   .stat{border:1px solid var(--line);border-radius:13px;padding:14px;text-align:center}
@@ -82,6 +83,12 @@
   .tabs button.active{background:#0f4f83}
   .qrow{display:grid;grid-template-columns:1.2fr 2fr 1fr 80px 90px;gap:8px;align-items:end;border:1px solid var(--line);padding:10px;border-radius:10px;margin:8px 0}
   .pill{display:inline-block;padding:4px 9px;border-radius:999px;background:#e8f1f8;font-size:12px;font-weight:800}
+  .consent-choice{display:grid;gap:10px;margin-top:16px}
+  .consent-option{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:12px;padding:13px 14px;background:#fff}
+  .consent-option:has(input:checked){border-color:var(--p);background:#f3f8fc}
+  .consent-option.refusal:has(input:checked){border-color:#d97706;background:#fffaf0}
+  .consent-option input{width:auto;margin-top:3px;flex:0 0 auto}
+  .consent-option label{margin:0;cursor:pointer;display:flex;flex-direction:column;gap:3px;font-weight:400}
   @media(max-width:720px){.wrap{padding:10px}.grid,.stats{grid-template-columns:1fr}.qrow{grid-template-columns:1fr 1fr}.top h1{font-size:22px}}
 </style>
 </head>
@@ -97,7 +104,10 @@
   </div>
 
   <div class="wrap">
-    <div class="top"><h1 id="appTitle">Khảo sát</h1><p id="appDesc">Khảo sát nội bộ</p></div>
+    <div class="top">
+      <h1 id="appTitle">Hệ thống khảo sát</h1>
+      <p id="appDesc">Khảo sát nội bộ</p>
+    </div>
 
     <section id="login" class="card">
       <h2>Đăng nhập nhân viên</h2>
@@ -112,12 +122,29 @@
     </section>
 
     <section id="consent" class="card hidden">
-      <h2 id="consentTitle">Thông báo</h2>
+      <div id="consentHead"></div>
       <div id="consentText" class="notice"></div>
       <div class="employee" id="empBox"></div>
-      <label><input type="checkbox" id="agree" style="width:auto"> Tôi đồng ý</label>
+
+      <div class="consent-choice">
+        <div class="consent-option">
+          <input type="radio" name="consentChoice" id="consentYes" value="yes">
+          <label for="consentYes">
+            <b>Tôi đồng ý tham gia khảo sát</b>
+            <span class="muted">Tôi đồng ý cung cấp thông tin theo mục đích đã nêu.</span>
+          </label>
+        </div>
+        <div class="consent-option refusal">
+          <input type="radio" name="consentChoice" id="consentNo" value="no">
+          <label for="consentNo">
+            <b>Tôi không đồng ý tham gia khảo sát</b>
+            <span class="muted">Lựa chọn này sẽ được ghi nhận là từ chối tham gia.</span>
+          </label>
+        </div>
+      </div>
+
       <div class="actions">
-        <button id="btnStartSurvey" onclick="startSurvey()">Bắt đầu khảo sát</button>
+        <button id="btnStartSurvey" onclick="startSurvey()">Tiếp tục</button>
         <button class="secondary" onclick="logout()">Thoát</button>
       </div>
       <div id="consentErr" class="err"></div>
@@ -267,9 +294,9 @@ async function boot() {
       return;
     }
     survey = d.survey;
-    $('appTitle').textContent = survey.Title || survey.Name;
-    $('appDesc').textContent = survey.Description || '';
-    $('consentText').textContent = survey.ConsentText || '';
+    $('appTitle').textContent = 'Hệ thống khảo sát';
+    $('appDesc').textContent = 'Khảo sát nội bộ';
+    renderConsentIntro();
   } catch(e) {
     $('loginErr').textContent = 'Lỗi kết nối: ' + e.message;
   } finally {
@@ -299,7 +326,8 @@ async function employeeLogin() {
     employee = d.employee;
     survey = d.survey;
     $('empBox').innerHTML = '<b>' + esc(employee.hoTen) + '</b><br>Mã NV: ' + esc(employee.maNV) + '<br>CCCD: ' + esc(employee.cccd);
-    $('consentText').textContent = survey.ConsentText || '';
+    renderConsentIntro();
+    clearConsentChoice();
     show('consent');
   } catch(e) {
     $('loginErr').textContent = e.message;
@@ -311,33 +339,61 @@ async function employeeLogin() {
 
 // Bắt đầu bài khảo sát
 async function startSurvey() {
-  if (!$('agree').checked) {
-    $('consentErr').textContent = 'Vui lòng xác nhận đồng ý.';
+  $('consentErr').textContent = '';
+
+  const choice = document.querySelector('input[name="consentChoice"]:checked')?.value || '';
+  if (!choice) {
+    $('consentErr').textContent = 'Vui lòng chọn Đồng ý hoặc Không đồng ý.';
     return;
   }
-  
-  showLoading('Đang tải câu hỏi...');
+
   $('btnStartSurvey').disabled = true;
+  showLoading(choice === 'yes' ? 'Đang tải câu hỏi...' : 'Đang ghi nhận lựa chọn...');
 
   try {
-    const d = await api('getSurvey', {code: SURVEY_CODE});
-    if (d.ok) {
-      survey = d.survey;
-      questions = d.survey.questions || [];
-    } else {
-      throw Error(d.message || 'Không tải được khảo sát');
+    if (choice === 'no') {
+      const d = await api('saveSurveyResponse', {
+        code: SURVEY_CODE,
+        token: empToken,
+        consent: false,
+        answers: {}
+      });
+
+      if (!d.ok) {
+        $('consentErr').textContent = d.message || 'Không thể ghi nhận lựa chọn.';
+        return;
+      }
+
+      alert(d.message || 'Đã ghi nhận lựa chọn không đồng ý tham gia khảo sát.');
+      logout();
+      return;
     }
+
+    const d = await api('getSurvey', {code: SURVEY_CODE});
+    if (!d.ok) throw Error(d.message || 'Không tải được khảo sát');
+
+    survey = d.survey;
+    questions = d.survey.questions || [];
     renderForm();
     show('form');
   } catch(e) {
-    const d = await api('getSurvey', {code: SURVEY_CODE});
-    questions = d.survey?.questions || [];
-    renderForm();
-    show('form');
+    $('consentErr').textContent = e.message || 'Có lỗi xảy ra.';
   } finally {
     hideLoading();
     $('btnStartSurvey').disabled = false;
   }
+}
+
+function renderConsentIntro() {
+  if (!survey) return;
+  $('consentHead').innerHTML =
+    '<h2 style="margin-bottom:6px">' + esc(survey.Title || survey.Name || 'Khảo sát') + '</h2>' +
+    (survey.Description ? '<div class="muted" style="margin-bottom:14px">' + esc(survey.Description) + '</div>' : '');
+  $('consentText').textContent = survey.ConsentText || '';
+}
+
+function clearConsentChoice() {
+  document.querySelectorAll('input[name="consentChoice"]').forEach(x => x.checked = false);
 }
 
 function renderForm() {
@@ -351,7 +407,9 @@ function renderForm() {
     html += '<div class="question"><label>' + esc(q.Label) + (q.Required ? ' <span class="req">*</span>' : '') + '</label>' + control(q) + (q.HelpText ? '<div class="muted">' + esc(q.HelpText) + '</div>' : '') + '</div>';
   }
   $('questions').innerHTML = html;
-  $('formHead').innerHTML = '<h2>' + esc(survey.Title) + '</h2><div class="muted">' + esc(survey.Description || '') + '</div>';
+  $('formHead').innerHTML =
+    '<h2 style="margin-bottom:6px">' + esc(survey.Title || survey.Name || 'Khảo sát') + '</h2>' +
+    (survey.Description ? '<div class="muted" style="margin-bottom:16px">' + esc(survey.Description) + '</div>' : '');
 }
 
 function control(q) {
@@ -409,7 +467,9 @@ function logout() {
   empToken = '';
   employee = null;
   $('cccd').value = '';
-  $('agree').checked = false;
+  clearConsentChoice();
+  $('consentErr').textContent = '';
+  $('formErr').textContent = '';
   show('login');
 }
 

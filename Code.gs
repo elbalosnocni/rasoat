@@ -65,13 +65,13 @@ function setup() {
   const surveys = getSheet_(CFG.SURVEY_SHEET);
   if (surveys.getLastRow() <= 1) {
     const id = 'SV_' + Utilities.getUuid().slice(0,8).toUpperCase();
-    surveys.appendRow([
+    surveys.getRange(surveys.getLastRow()+1, 1, 1, 12).setValues([[
       id, 'KSTT_2026', 'Khảo sát hiện tại',
       'KHẢO SÁT THU THẬP THÔNG TIN',
       'Nội dung khảo sát có thể chỉnh sửa hoàn toàn trong Admin.',
       'Tôi đồng ý cho Công ty xử lý dữ liệu theo nội dung thông báo.',
       'PUBLISHED', new Date(), new Date('2026-12-31T23:59:00'), 1, new Date(), 'setup'
-    ]);
+    ]]);
     const qs = [
       ['Q_NGAYSINH',id,'Thông tin cá nhân','Ngày, tháng, năm sinh','date',true,'','','',true,10],
       ['Q_GIOITINH',id,'Thông tin cá nhân','Giới tính','select',true,'Nam|Nữ|Khác','','',true,20],
@@ -203,7 +203,8 @@ function doPost(e) {
       case 'adminAddQuestion': return adminAddQuestion_(b);
       case 'adminUpdateQuestion': return adminUpdateQuestion_(b);
       case 'adminDeleteQuestion': return adminDeleteQuestion_(b);
-      case 'adminSetStatus': return adminSetStatus_(b);
+      case 'adminSetStatus':
+      case 'adminSetSurveyStatus': return adminSetStatus_(b);
       case 'adminLogout': destroySession_(b.token); return json_({ok:true});
       case 'adminListSurveys': return adminListSurveys_(b);
       case 'adminCreateSurvey': return adminCreateSurvey_(b);
@@ -262,13 +263,22 @@ function saveSurveyResponse_(b) {
   if (!survey || String(survey.Status).toUpperCase()!=='PUBLISHED') {
     return json_({ok:false,error:'SURVEY_CLOSED',message:'Khảo sát đã đóng.'});
   }
+  if (typeof b.consent !== 'boolean') {
+    return json_({ok:false,error:'CONSENT_REQUIRED',message:'Vui lòng chọn Đồng ý hoặc Không đồng ý.'});
+  }
+
   const consent = b.consent === true;
   const answers = (b.answers && typeof b.answers === 'object') ? b.answers : {};
   const questions = getQuestions_(survey.SurveyId);
-  for (const q of questions) {
-    if (!q.Active) continue;
-    if (q.Required && q.QuestionId!=='Q_CONSENT' && isEmptyAnswer_(answers[q.QuestionId])) {
-      return json_({ok:false,error:'MISSING_REQUIRED',questionId:q.QuestionId,message:'Vui lòng điền: '+q.Label});
+
+  // Chỉ kiểm tra câu hỏi bắt buộc khi người lao động đồng ý tham gia.
+  // Nếu từ chối, ghi nhận lựa chọn và không yêu cầu trả lời các câu hỏi.
+  if (consent) {
+    for (const q of questions) {
+      if (!q.Active) continue;
+      if (q.Required && q.QuestionId!=='Q_CONSENT' && isEmptyAnswer_(answers[q.QuestionId])) {
+        return json_({ok:false,error:'MISSING_REQUIRED',questionId:q.QuestionId,message:'Vui lòng điền: '+q.Label});
+      }
     }
   }
   const existing = findLatestResponse_(survey.SurveyId,p.maNV);
@@ -471,7 +481,10 @@ function adminCreateSurvey_(b){
   if(!code)return json_({ok:false,error:'INVALID_CODE',message:'Thiếu mã khảo sát.'});
   if(findSurveyByCode_(code))return json_({ok:false,error:'CODE_EXISTS',message:'Mã đã tồn tại.'});
   const now=new Date(),id='SV_'+Utilities.getUuid().slice(0,8).toUpperCase();
-  getSheet_(CFG.SURVEY_SHEET).appendRow([id,code,clean_(x.Name||code,200),clean_(x.Title||x.Name||code,500),clean_(x.Description,5000),clean_(x.ConsentText,5000),'DRAFT',now,'',1,now,s.username,now,s.username]);
+  getSheet_(CFG.SURVEY_SHEET).getRange(getSheet_(CFG.SURVEY_SHEET).getLastRow()+1,1,1,12).setValues([[
+    id,code,clean_(x.Name||code,200),clean_(x.Title||x.Name||code,500),
+    clean_(x.Description,5000),clean_(x.ConsentText,5000),'DRAFT',now,'',1,now,s.username
+  ]]);
   auditPlatform_(s.username,'CREATE','Survey',id,{code});
   return json_({ok:true,code});
 }
@@ -480,7 +493,10 @@ function adminCloneSurvey_(b){
   const src=findSurveyByCode_(String(b.sourceCode||''));if(!src)return json_({ok:false,error:'NOT_FOUND'});
   const code=clean_(b.newCode,80).replace(/\s+/g,'_').toUpperCase();if(!code||findSurveyByCode_(code))return json_({ok:false,error:'CODE_EXISTS'});
   const now=new Date(),id='SV_'+Utilities.getUuid().slice(0,8).toUpperCase();
-  getSheet_(CFG.SURVEY_SHEET).appendRow([id,code,clean_(b.name||src.Name,200),src.Title,src.Description,src.ConsentText,'DRAFT',src.StartAt,src.EndAt,1,now,s.username,now,s.username]);
+  getSheet_(CFG.SURVEY_SHEET).getRange(getSheet_(CFG.SURVEY_SHEET).getLastRow()+1,1,1,12).setValues([[
+    id,code,clean_(b.name||src.Name,200),src.Title,src.Description,src.ConsentText,
+    'DRAFT',src.StartAt,src.EndAt,1,now,s.username
+  ]]);
   const sections=getSectionsPlatform_(src.SurveyId),map={};
   sections.forEach(sec=>{const nid='SEC_'+Utilities.getUuid().slice(0,8).toUpperCase();map[sec.SectionId]=nid;getSheet_(CFG.SECTION_SHEET).appendRow([nid,id,sec.Title,sec.Description,sec.SortOrder,true,now]);});
   const qs=getQuestions_(src.SurveyId),qmap={};

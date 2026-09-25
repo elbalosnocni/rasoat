@@ -1,0 +1,24 @@
+KHẢO SÁT V4 - BẢN TỐI ƯU
+
+1. Sửa trùng lặp Tiêu đề/Mô tả:
+   - Header chung chỉ còn tên hệ thống.
+   - Màn hình đồng ý hiển thị Tiêu đề rồi Mô tả đúng thứ tự.
+   - Màn hình trả lời hiển thị Tiêu đề rồi Mô tả đúng thứ tự và chỉ một lần.
+
+2. Thêm lựa chọn Đồng ý / Không đồng ý:
+   - Người lao động phải chọn một trong hai.
+   - Nếu Không đồng ý, hệ thống ghi nhận Consent = Không đồng ý, Status = Từ chối và không bắt nhập các câu hỏi bắt buộc.
+   - Sau khi ghi nhận từ chối, phiên nhân viên được kết thúc.
+
+3. Sửa backend:
+   - Chặn request thiếu lựa chọn consent.
+   - Không validate câu hỏi bắt buộc khi người lao động từ chối.
+   - Sửa ghi dòng Survey để đúng 12 cột header, tránh phát sinh cột thừa.
+   - Thêm alias adminSetSurveyStatus để tương thích frontend hiện tại.
+
+4. Đã kiểm tra cú pháp JavaScript của frontend và Apps Script bằng Node.js.
+
+Cài đặt:
+- index.html: thay file frontend hiện tại.
+- Code.gs: thay toàn bộ code Apps Script hiện tại, sau đó Deploy lại Web App.
+- Không cần thay đổi cấu trúc các sheet hiện có nếu đã setup đúng header.
