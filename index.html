@@ -148,7 +148,7 @@ th {
 </div>
 
 <h2>
-    🔎 Danh sách cần rà soát 
+    🔎 Danh sách thu hồi tiền hưởng chế độ BHXH sai quy định 
     <span id="adminBadge" class="admin-badge">ADMIN MODE</span>
 </h2>
 
@@ -157,7 +157,7 @@ th {
     <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://rasoat.pages.dev/" alt="QR Code">
 </div> 
 
-<p>Lưu ý: CNV Tự rà soát, kiểm tra, và lên phòng nhân sự ký cam kết nếu thực tế có đi khám, chữa bệnh</p>
+<p>Lưu ý: CNV lên phòng nhân sự hoàn trả tiền cho BHXH</p>
 <p id="searchGuide">Nhập chính xác số CCCD để tra cứu</p>
 
 <!-- KHU VỰC TÌM KIẾM CÓ NÚT -->
@@ -186,8 +186,10 @@ th {
 
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
-    <!-- VỊ TRÍ HIỂN THỊ THÔNG BÁO PDF CỐ ĐỊNH PHÍA DƯỚI -->
-<div style="max-width: 400px; margin: 25px auto 10px auto; background: white; padding: 12px; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+   <!-- VỊ TRÍ HIỂN THỊ THÔNG BÁO PDF CỐ ĐỊNH PHÍA DƯỚI -->
+
+<!-- Công văn lần 2 -->
+<div style="width: calc(100% - 24px); max-width: 400px; margin: 25px auto 10px auto; background: white; padding: 12px; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); box-sizing: border-box;">
   <b style="display: block; text-align: center; margin-bottom: 8px; color: #d32f2f;">
     📢 Công văn thu hồi từ BHXH lần 2
   </b>
@@ -195,22 +197,27 @@ th {
     src="https://drive.google.com/file/d/1A6GYEc-Cdy8T_77XJEwlvkP7JCSKtTMt/preview" 
     width="100%" 
     height="320" 
-    style="border: 1px solid #ccc; border-radius: 6px;"
+    style="border: 1px solid #ccc; border-radius: 6px; display: block;"
     allow="autoplay">
   </iframe>
 </div>
-      📢 Công văn thu hồi từ BHXH lần 1
+
+<!-- Công văn lần 1 (Đã sửa lỗi thiếu thẻ div và b) -->
+<div style="width: calc(100% - 24px); max-width: 400px; margin: 25px auto 10px auto; background: white; padding: 12px; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); box-sizing: border-box;">
+  <b style="display: block; text-align: center; margin-bottom: 8px; color: #d32f2f;">
+    📢 Công văn thu hồi từ BHXH lần 1
   </b>
   <iframe 
     src="https://drive.google.com/file/d/1xadnlXIdt4a9iYitsnEBhfSk38yHZefj/preview" 
     width="100%" 
     height="320" 
-    style="border: 1px solid #ccc; border-radius: 6px;"
+    style="border: 1px solid #ccc; border-radius: 6px; display: block;"
     allow="autoplay">
   </iframe>
 </div>
 
-<div style="max-width: 400px; margin: 25px auto 10px auto; background: white; padding: 12px; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+<!-- Công văn rà soát -->
+<div style="width: calc(100% - 24px); max-width: 400px; margin: 25px auto 10px auto; background: white; padding: 12px; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); box-sizing: border-box;">
   <b style="display: block; text-align: center; margin-bottom: 8px; color: #d32f2f;">
     🔍 Công văn rà soát
   </b>
@@ -218,10 +225,11 @@ th {
     src="https://drive.google.com/file/d/1p8trIzEizzyyb3NDoAFAmXjjBCmSlZgf/preview" 
     width="100%" 
     height="320" 
-    style="border: 1px solid #ccc; border-radius: 6px;"
+    style="border: 1px solid #ccc; border-radius: 6px; display: block;"
     allow="autoplay">
   </iframe>
 </div>
+
     
 <script>
 let data = [];
